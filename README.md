@@ -1,7 +1,7 @@
 # logformatter
 
-usage:
+usage (from project root):
 
 ```
-$ cat input.txt | dotnet run cli | tee output.txt
+$ cat input.txt | dotnet run -p cli | tee output.txt
 ```
