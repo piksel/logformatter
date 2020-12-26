@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using LogFormatter;
 using LogFormatter.Parser;
 
@@ -12,22 +13,27 @@ namespace Piksel.LogFormatter.Parser
     {
         public string FormatRow(string format, int? restIndent = null)
         {
+            var formatKeys = Regex.Matches(format, "{([a-z]+)(:\\S+)?}")
+                .Select(m => m.Groups[1].Value)
+                .ToArray();
+
             var sbExtra = new StringBuilder();
-            List<string> keyIndex = new List<string>(Count);
-            foreach (var key in Keys)
+            for (int i = 0; i < formatKeys.Length; i++)
             {
-                if (format.Contains(key))
-                {
-                    format = format.Replace(key, keyIndex.Count.ToString());
-                    keyIndex.Add(key);
-                }
-                else if (restIndent is {} i)
+                format = format.Replace(formatKeys[i], i.ToString());
+            }
+
+            foreach(var key in Keys.Where(key => !formatKeys.Contains(key))) 
+            {
+                if (restIndent is {} i)
                 {
                     sbExtra.Append($"{Environment.NewLine}{"".PadRight(i)} {key}: {this[key]}");
                 }
             }
 
-            var row = LogStringFormatter.Format(format, keyIndex.Select(k => this[k] as object).ToArray());
+            var row = LogStringFormatter.Format(format, formatKeys
+                .Select(k => ContainsKey(k) ? this[k] as object : "")
+                .ToArray());
 
             if (sbExtra.Length > 0)
             {
@@ -90,6 +96,7 @@ namespace Piksel.LogFormatter.Parser
         {
             while (CurrentChar != EOF)
             {
+                _row += EatNewLines();
                 var itemRow = new LogItem();
                 while (CurrentChar != '\n')
                 {
